@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  tg-downloader:
+    build: .
+    container_name: tg-downloader
+    restart: unless-stopped
+    environment:
+      - TZ=Asia/Shanghai
+    ports:
+      - "2004:5001"
+    volumes:
+      - ./data:/app/data
+      - ./downloads:/app/downloads
+      - ./logs:/app/logs
+    # 如果需要自动创建数据目录
+    user: "0:0"
+    # 新增：指定容器加入的网络
+    networks:
+      - alist
+
+# 新增：声明使用外部创建的common-network
+networks:
+  alist:
+    external: true

@@ -1,0 +1,5 @@
+requests
+Telethon
+cryptg
+flask
+psutil

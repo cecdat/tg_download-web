@@ -1,0 +1,10 @@
+downloads
+data
+venv
+__pycache__
+*.pyc
+.git
+.gitignore
+.dockerignore
+tg_downloader_*.zip
+tg_downloader_*.tar.gz
