@@ -1,0 +1,87 @@
+/* pages/channels/channels.wxss */
+.header-section {
+  padding: 40rpx 0 20rpx 0;
+}
+
+.btn-add {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+  background: var(--primary-gradient);
+  padding: 12rpx 30rpx;
+  border-radius: 100rpx;
+  box-shadow: 0 8rpx 20rpx rgba(82, 113, 255, 0.2);
+}
+
+.channel-card {
+  background: #F8FAFC;
+  padding: 30rpx;
+  border-radius: 24rpx;
+  border: 2rpx solid transparent;
+  transition: all 0.2s ease;
+}
+
+.channel-card:active {
+  background: #F1F5F9;
+  border-color: #E2E8F0;
+}
+
+.action-btns {
+  display: flex;
+  gap: 16rpx;
+}
+
+.icon-btn {
+  width: 64rpx;
+  height: 64rpx;
+  background: #FFFFFF;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  font-size: 28rpx;
+  transition: all 0.2s ease;
+}
+
+.icon-btn:active {
+  transform: scale(0.9);
+}
+
+.icon-btn.toggle {
+  background: #F1F5F9;
+}
+
+.icon-btn.toggle.active {
+  background: #E0E7FF;
+  color: #5271FF;
+}
+
+.icon-btn.delete {
+  background: #FFF1F2;
+}
+
+.error-msg {
+  font-size: 24rpx;
+  background: #FFF1F2;
+  color: #E11D48;
+  padding: 16rpx 24rpx;
+  border-radius: 12rpx;
+  margin-top: 20rpx;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80rpx 0;
+}
+
+.empty-icon {
+  font-size: 100rpx;
+  margin-bottom: 20rpx;
+  opacity: 0.5;
+}
+
+.font-bold { font-weight: 700; }
+.truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320rpx; }
+.ml-20 { margin-left: 20rpx; }
+.py-40 { padding: 40rpx 0; }

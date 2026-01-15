@@ -46,6 +46,25 @@ if [ -f "docker-compose.yml" ]; then
     docker compose down 2>/dev/null || docker-compose down 2>/dev/null || true
 fi
 
+# 2.1 自动版本号管理
+VERSION_FILE=".version"
+TODAY=$(date +%Y.%m%d)
+BUILD_NUM=1
+
+if [ -f "$VERSION_FILE" ]; then
+    OLD_VERSION=$(cat "$VERSION_FILE")
+    OLD_DATE=$(echo "$OLD_VERSION" | cut -d'.' -f1,2 | sed 's/v//')
+    OLD_NUM=$(echo "$OLD_VERSION" | cut -d'.' -f3)
+    
+    if [ "$TODAY" == "$OLD_DATE" ]; then
+        BUILD_NUM=$((OLD_NUM + 1))
+    fi
+fi
+
+NEW_VERSION="v${TODAY}.${BUILD_NUM}"
+echo "$NEW_VERSION" > "$VERSION_FILE"
+echo "🔖 自动增加版本号: $NEW_VERSION"
+
 # 3. 更新代码 (仅当有压缩包时)
 if [ "$HAS_ZIP" = true ]; then
     echo "📦 解压更新代码..."
@@ -55,6 +74,12 @@ if [ "$HAS_ZIP" = true ]; then
     # 备份或删除压缩包 (这里选择保留备份，避免重复执行时报错，或者重命名)
     mv "$ZIP_FILE" "${ZIP_FILE}.bak"
     echo "✅ 已将安装包重命名为 ${ZIP_FILE}.bak"
+fi
+
+# 3.1 注入版本号到 Python 文件
+if [ -f "tg_download_web.py" ]; then
+    echo "💉 注入版本号到程序代码..."
+    sed -i "s/^VERSION = .*/VERSION = \"$NEW_VERSION\"/" tg_download_web.py
 fi
 
 # 4. 权限修正

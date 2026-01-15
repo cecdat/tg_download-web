@@ -1,0 +1,92 @@
+<view class="container">
+  <view class="header-section">
+    <view class="title-main">控制台</view>
+    <view class="title-sub">实时监控系统状态与下载进度</view>
+  </view>
+
+  <!-- 系统状态卡片 -->
+  <view class="card">
+    <view class="flex-between mb-24">
+      <view class="section-title">系统状态</view>
+      <view class="refresh-btn" bindtap="refreshData">
+        <text class="loading-spinner" wx:if="{{loading}}"></text>
+        <text wx:else>🔄 刷新</text>
+      </view>
+    </view>
+    
+    <view class="status-grid-compact">
+      <view class="status-item-mini">
+        <text class="status-icon-mini bg-blue">💾</text>
+        <view class="status-info-mini">
+          <text class="status-label-mini">磁盘 ({{diskUsed}}G / {{diskTotal}}G)</text>
+          <text class="status-value-mini" style="color: {{diskPercent > 90 ? '#E11D48' : '#1E293B'}}">{{diskPercent}}%</text>
+        </view>
+      </view>
+      
+      <view class="status-item-mini">
+        <text class="status-icon-mini bg-purple">🧠</text>
+        <view class="status-info-mini">
+          <text class="status-label-mini">内存 ({{memoryUsed}}G / {{memoryTotal}}G)</text>
+          <text class="status-value-mini" style="color: {{memoryPercent > 90 ? '#E11D48' : '#1E293B'}}">{{memoryPercent}}%</text>
+        </view>
+      </view>
+      
+      <view class="status-item-mini">
+        <text class="status-icon-mini bg-pink">⚡</text>
+        <view class="status-info-mini">
+          <text class="status-label-mini">系统负载</text>
+          <text class="status-value-mini">{{systemLoad}}</text>
+        </view>
+      </view>
+      
+      <view class="status-item-mini">
+        <text class="status-icon-mini bg-orange">⏱️</text>
+        <view class="status-info-mini">
+          <text class="status-label-mini">运行时长</text>
+          <text class="status-value-mini" style="font-size: 24rpx;">{{uptime}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 活跃下载卡片 -->
+  <view class="card">
+    <view class="section-title">活跃下载</view>
+    
+    <view wx:if="{{loading && activeDownloads.length === 0}}" class="flex-center py-40">
+      <view class="loading-spinner"></view>
+    </view>
+    
+    <view wx:elif="{{activeDownloads.length > 0}}">
+      <view class="download-item mb-20 {{item.status === 'waiting' ? 'waiting-mode' : ''}}" wx:for="{{activeDownloads}}" wx:key="index">
+        <view class="flex-between mb-10">
+          <view class="download-info">
+            <view class="font-bold text-md truncate">{{item.name}}</view>
+            <view class="flex-row mt-10">
+              <view class="badge badge-info">{{item.channel_name || '-'}}</view>
+              <view class="text-xs text-muted ml-20" wx:if="{{item.status !== 'waiting'}}">⚡ {{item.speed}}</view>
+              <view class="text-xs text-warning ml-20" wx:else>⏳ 排队等待中...</view>
+            </view>
+          </view>
+          <view class="text-primary font-bold" wx:if="{{item.status !== 'waiting'}}">{{item.percentage}}%</view>
+          <view class="text-warning font-bold" wx:else>等待中</view>
+        </view>
+        
+        <view class="progress-container" wx:if="{{item.status !== 'waiting'}}">
+          <view class="progress-filler" style="width: {{item.percentage}}%"></view>
+        </view>
+        
+        <view class="flex-between text-xs text-muted mt-10">
+          <text wx:if="{{item.status !== 'waiting'}}">{{item.downloaded}} MB / {{item.total}} MB</text>
+          <text wx:else>当前共有 {{activeDownloads.length}} 个任务</text>
+          <text>{{item.status === 'waiting' ? '等待资源' : '正在下载'}}</text>
+        </view>
+      </view>
+    </view>
+    
+    <view wx:else class="empty-state mt-40">
+      <view class="empty-icon">☕</view>
+      <text class="text-muted">当前暂无活跃下载任务</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,68 @@
+<view class="container">
+  <view class="header-section">
+    <view class="title-main">系统设置</view>
+    <view class="title-sub">管理下载路径、并发限制及安全选项</view>
+  </view>
+
+  <!-- 基本设置 -->
+  <view class="card">
+    <view class="section-title">核心配置</view>
+    
+    <view wx:if="{{loading}}" class="flex-center py-40">
+      <view class="loading-spinner"></view>
+    </view>
+    
+    <view wx:else>
+      <view class="input-group">
+        <text class="input-label">下载根目录</text>
+        <input class="input-field" placeholder="/app/downloads" bindinput="onDownloadDirInput" value="{{settings.DOWNLOAD_DIR}}" />
+      </view>
+      
+      <view class="input-group">
+        <text class="input-label">最大并发任务数</text>
+        <input class="input-field" type="number" placeholder="建议 1~5" bindinput="onMaxConcurrentDownloadsInput" value="{{settings.MAX_CONCURRENT_DOWNLOADS}}" />
+      </view>
+      
+      <view class="input-group">
+        <text class="input-label">过期文件自动清理 (天)</text>
+        <input class="input-field" type="number" placeholder="0 为不清理" bindinput="onFileRetentionDaysInput" value="{{settings.FILE_RETENTION_DAYS}}" />
+      </view>
+      
+      <view class="flex-between mt-20 mb-24" bindtap="toggleSendChannelLoginMsg">
+        <text class="text-md font-bold">频道登录通知</text>
+        <switch checked="{{sendChannelLoginMsg}}" color="#5271FF" />
+      </view>
+      
+      <view class="btn-primary" bindtap="saveSettings">保存配置</view>
+    </view>
+  </view>
+  
+  <!-- 安全中心 -->
+  <view class="card">
+    <view class="section-title">安全中心</view>
+    
+    <view class="input-group">
+      <text class="input-label">当前密码</text>
+      <input class="input-field" placeholder="旧密码" password bindinput="onOldPasswordInput" value="{{passwordData.oldPassword}}" />
+    </view>
+    
+    <view class="input-group">
+      <text class="input-label">设置新密码</text>
+      <input class="input-field" placeholder="新密码" password bindinput="onNewPasswordInput" value="{{passwordData.newPassword}}" />
+    </view>
+    
+    <view class="input-group">
+      <text class="input-label">确认新密码</text>
+      <input class="input-field" placeholder="再次输入新密码" password bindinput="onConfirmPasswordInput" value="{{passwordData.confirmPassword}}" />
+    </view>
+    
+    <view class="error-msg" wx:if="{{passwordError}}">{{passwordError}}</view>
+    
+    <view class="btn-secondary mt-20" bindtap="changePassword">更新登录密码</view>
+  </view>
+  
+  <!-- 危险区域 -->
+  <view class="logout-section mt-40 mb-40">
+    <view class="btn-danger-outline" bindtap="confirmLogout">退出当前账号</view>
+  </view>
+</view>

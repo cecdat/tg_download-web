@@ -1,0 +1,81 @@
+<view class="container">
+  <view class="header-section">
+    <view class="title-main">账号管理</view>
+    <view class="title-sub">配置 Telegram API 与 机器人 Token</view>
+  </view>
+
+  <view class="card">
+    <view class="flex-between mb-24">
+      <view class="section-title">我的账号</view>
+      <view class="btn-add" bindtap="showAddAccountModal">+ 添加</view>
+    </view>
+    
+    <view wx:if="{{loading && accounts.length === 0}}" class="flex-center py-40">
+      <view class="loading-spinner"></view>
+    </view>
+    
+    <view wx:elif="{{accounts.length > 0}}">
+      <view class="account-card mb-20" wx:for="{{accounts}}" wx:key="id">
+        <view class="flex-between">
+          <view class="account-info">
+            <view class="font-bold text-md mb-10">{{item.name}}</view>
+            <view class="account-tags">
+              <view class="badge badge-info">ID: {{item.api_id}}</view>
+              <view class="badge {{item.bot_token ? 'badge-success' : 'badge-warning'}}">
+                {{item.bot_token ? 'Bot: 已设置' : 'Bot: 未设置'}}
+              </view>
+            </view>
+          </view>
+          <view class="action-btns">
+            <view class="icon-btn edit" bindtap="showEditAccountModal" data-account="{{item}}">✏️</view>
+            <view class="icon-btn delete" bindtap="confirmDeleteAccount" data-id="{{item.id}}">🗑️</view>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <view wx:else class="empty-state mt-40">
+      <view class="empty-icon">👥</view>
+      <text class="text-muted">暂无账号信息，请点击右上角添加</text>
+    </view>
+  </view>
+  
+  <!-- 添加/编辑弹窗 -->
+  <view class="modal-mask" wx:if="{{showModal}}" bindtap="hideModal">
+    <view class="modal-content" catchtap="stopBubble">
+      <view class="modal-header">
+        <view class="modal-title">{{isEdit ? '编辑账号' : '添加账号'}}</view>
+        <view class="modal-close" bindtap="hideModal">×</view>
+      </view>
+      
+      <view class="modal-body">
+        <view class="input-group">
+          <text class="input-label">账号名称</text>
+          <input class="input-field" placeholder="例如：我的主账号" bindinput="onNameInput" value="{{formData.name}}" />
+        </view>
+        
+        <view class="input-group">
+          <text class="input-label">API ID</text>
+          <input class="input-field" type="number" placeholder="Telegram API ID" bindinput="onApiIdInput" value="{{formData.api_id}}" />
+        </view>
+        
+        <view class="input-group">
+          <text class="input-label">API Hash</text>
+          <input class="input-field" placeholder="Telegram API Hash" bindinput="onApiHashInput" value="{{formData.api_hash}}" />
+        </view>
+        
+        <view class="input-group">
+          <text class="input-label">Bot Token (可选)</text>
+          <input class="input-field" placeholder="机器人 Token" bindinput="onBotTokenInput" value="{{formData.bot_token}}" />
+        </view>
+        
+        <view class="error-msg" wx:if="{{error}}">{{error}}</view>
+        
+        <view class="modal-footer mt-40">
+          <view class="btn-secondary w-full" bindtap="hideModal">取消</view>
+          <view class="btn-primary w-full" bindtap="saveAccount">{{isEdit ? '保存修改' : '立即创建'}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

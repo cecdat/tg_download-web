@@ -1,0 +1,98 @@
+<view class="container">
+  <view class="header-section">
+    <view class="title-main">频道管理</view>
+    <view class="title-sub">设置要监听下载的 Telegram 频道或群组</view>
+  </view>
+
+  <view class="card">
+    <view class="flex-between mb-24">
+      <view class="section-title">监听列表</view>
+      <view class="btn-add" bindtap="showAddChannelModal">+ 添加</view>
+    </view>
+    
+    <view wx:if="{{loading && channels.length === 0}}" class="flex-center py-40">
+      <view class="loading-spinner"></view>
+    </view>
+    
+    <view wx:elif="{{channels.length > 0}}">
+      <view class="channel-card mb-20" wx:for="{{channels}}" wx:key="id">
+        <view class="flex-between">
+          <view class="channel-info">
+            <view class="flex-row mb-10">
+              <view class="font-bold text-md truncate">{{item.channel_name || item.channel_id}}</view>
+              <view class="badge {{item.enabled ? 'badge-success' : 'badge-danger'}} ml-20">
+                {{item.enabled ? '运行中' : '已暂停'}}
+              </view>
+            </view>
+            <view class="text-xs text-muted">
+              账号: {{item.account_name}}
+              <text wx:if="{{item.custom_path}}"> | 路径: {{item.custom_path}}</text>
+            </view>
+          </view>
+          
+          <view class="action-btns">
+            <view class="icon-btn toggle {{item.enabled ? 'active' : ''}}" bindtap="toggleChannelStatus" data-id="{{item.id}}" data-enabled="{{item.enabled}}">
+              {{item.enabled ? '⏸️' : '▶️'}}
+            </view>
+            <view class="icon-btn edit" bindtap="showEditChannelModal" data-channel="{{item}}">✏️</view>
+            <view class="icon-btn delete" bindtap="confirmDeleteChannel" data-id="{{item.id}}">🗑️</view>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <view wx:else class="empty-state mt-40">
+      <view class="empty-icon">📢</view>
+      <text class="text-muted">暂无监听频道，请点击右上角添加</text>
+    </view>
+  </view>
+  
+  <!-- 添加/编辑弹窗 -->
+  <view class="modal-mask" wx:if="{{showModal}}" bindtap="hideModal">
+    <view class="modal-content" catchtap="stopBubble">
+      <view class="modal-header">
+        <view class="modal-title">{{isEdit ? '编辑频道' : '添加频道'}}</view>
+        <view class="modal-close" bindtap="hideModal">×</view>
+      </view>
+      
+      <view class="modal-body">
+        <view class="input-group">
+          <text class="input-label">所属账号</text>
+          <picker bindchange="onAccountChange" value="{{accountIndex}}" range="{{accounts}}" range-key="name">
+            <view class="input-field flex-between">
+              <text>{{accounts[accountIndex] && accounts[accountIndex].name ? accounts[accountIndex].name : '请选择账号'}}</text>
+              <text class="text-muted">▼</text>
+            </view>
+          </picker>
+        </view>
+        
+        <view class="input-group">
+          <text class="input-label">频道 ID / 链接</text>
+          <input class="input-field" placeholder="ID 或 t.me 链接" bindinput="onChannelIdInput" value="{{formData.channel_id}}" />
+        </view>
+        
+        <view class="input-group">
+          <text class="input-label">显示名称 (可选)</text>
+          <input class="input-field" placeholder="后台显示的名称" bindinput="onChannelNameInput" value="{{formData.channel_name}}" />
+        </view>
+        
+        <view class="input-group">
+          <text class="input-label">自定义下载路径 (可选)</text>
+          <input class="input-field" placeholder="相对于根目录的路径" bindinput="onCustomPathInput" value="{{formData.custom_path}}" />
+        </view>
+        
+        <view class="flex-between mt-20" bindtap="toggleEnabled">
+          <text class="text-md">启用此频道</text>
+          <switch checked="{{formData.enabled}}" color="#5271FF" />
+        </view>
+        
+        <view class="error-msg" wx:if="{{error}}">{{error}}</view>
+        
+        <view class="modal-footer mt-40">
+          <view class="btn-secondary w-full" bindtap="hideModal">取消</view>
+          <view class="btn-primary w-full" bindtap="saveChannel">{{isEdit ? '确认保存' : '立即添加'}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

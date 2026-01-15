@@ -1,0 +1,56 @@
+<view class="container">
+  <view class="header-section">
+    <view class="title-main">任务历史</view>
+    <view class="title-sub">回顾已完成或失败的下载记录</view>
+  </view>
+
+  <view class="card">
+    <view class="flex-between mb-24">
+      <view class="section-title">下载记录</view>
+      <view class="btn-clear" bindtap="confirmClearTasks">清空</view>
+    </view>
+    
+    <view wx:if="{{loading && tasks.length === 0}}" class="flex-center py-40">
+      <view class="loading-spinner"></view>
+    </view>
+    
+    <view wx:elif="{{tasks.length > 0}}">
+      <view class="task-card mb-20" wx:for="{{tasks}}" wx:key="id">
+        <view class="task-main">
+          <view class="file-icon">{{item.icon}}</view>
+          <view class="task-info">
+            <view class="font-bold text-md mb-10 truncate">{{item.file_name}}</view>
+            <view class="task-meta flex-row">
+              <view class="badge badge-info">{{item.account_name}}</view>
+              <view class="text-xs text-muted ml-20" wx:if="{{item.file_size > 0}}">{{item.file_size}} MB</view>
+            </view>
+          </view>
+          <view class="status-box">
+              <view class="badge badge-success" wx:if="{{item.status === 'completed'}}">已完成</view>
+              <view class="badge badge-danger" wx:elif="{{item.status === 'failed'}}">失败</view>
+              <view class="badge badge-warning" wx:elif="{{item.status === 'downloading'}}">下载中</view>
+              <view class="badge badge-orange" wx:elif="{{item.status === 'waiting'}}">排队中</view>
+              <view class="badge badge-info" wx:elif="{{item.status === 'file_expired'}}">已过期</view>
+          </view>
+        </view>
+        
+        <view class="task-footer flex-between mt-20">
+          <text class="text-xs text-muted">🕒 {{item.start_time}}</text>
+          <view class="btn-delete-link" bindtap="confirmDeleteTask" data-id="{{item.id}}">删除记录</view>
+        </view>
+      </view>
+      
+      <!-- 分页控制 -->
+      <view class="pagination-container mt-40">
+        <view class="btn-page {{currentPage <= 1 ? 'disabled' : ''}}" bindtap="prevPage">◀ 上一页</view>
+        <view class="page-count">{{currentPage}} / {{totalPages}}</view>
+        <view class="btn-page {{currentPage >= totalPages ? 'disabled' : ''}}" bindtap="nextPage">下一页 ▶</view>
+      </view>
+    </view>
+    
+    <view wx:else class="empty-state mt-40">
+      <view class="empty-icon">📁</view>
+      <text class="text-muted">暂无历史任务记录</text>
+    </view>
+  </view>
+</view>

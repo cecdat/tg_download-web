@@ -96,6 +96,7 @@ async def process_video_message(client, message, account_config):
     download_dir = db_manager.get_setting('DOWNLOAD_DIR', '/app/downloads')
     os.makedirs(download_dir, exist_ok=True)
     
+def get_file_name_and_path(message, account_id):
     # 1. 获取原始文件名和后缀
     original_file_name = "default.mp4"
     if message.video.attributes:
@@ -107,68 +108,45 @@ async def process_video_message(client, message, account_config):
     if not file_ext: file_ext = '.mp4'
 
     # 2. 智能生成文件名
-    # 优先级: Caption第一行 > 原文件名 > 时间戳
     final_name = ""
     caption = (message.text or "").strip()
-    
     if caption:
-        # 取第一行，且只取 #标签 之前的部分
         first_line = caption.split('\n')[0].strip()
         if '#' in first_line:
             first_line = first_line.split('#')[0].strip()
         final_name = first_line
     
-    if not final_name:
-        # 如果没有Caption或处理后为空，尝试使用原文件名
-        if original_file_name != "default.mp4":
-            final_name = os.path.splitext(original_file_name)[0]
+    if not final_name and original_file_name != "default.mp4":
+        final_name = os.path.splitext(original_file_name)[0]
     
     if not final_name:
-        # 保底使用时间戳
         final_name = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{message.id}"
 
-    # 3. 净化文件名
     sanitized_name = sanitize_filename(final_name)
     if not sanitized_name:
         sanitized_name = f"video_{message.id}"
-        
     new_file_name = f"{sanitized_name}{file_ext}"
-    
-    # 4. 判重处理 (自动重命名)
-    counter = 1
-    root_name = sanitized_name
-    # 获取频道配置以检查自定义路径
-    # 注意：这里需要通过 channel_id (Telegram ID) 反查数据库中的频道配置
-    # 由于可能存在多个账号监听同一个频道，这里尽量匹配当前账号下的频道
+
+    # 3. 匹配频道和获取目录
     target_channel = None
     all_channels = db_manager.get_channels(account_id)
     real_chat_id = message.chat_id
     
-    # 尝试匹配数据库记录
-    # 获取 Chat 对象以尝试获取 username
     chat_username = None
     try:
-        # message.chat 可能已经是 Chat 对象，或者需要 fetch
         if hasattr(message.chat, 'username'):
             chat_username = message.chat.username
     except: pass
 
     for ch in all_channels:
-        # 数据库存的可能是用户名或ID，需要做简单匹配
         stored_id = str(ch['channel_id']).strip()
-        
-        # 匹配逻辑1: ID直接匹配 (考虑 -100 前缀)
         id_match = (str(real_chat_id) == stored_id) or \
                    (str(real_chat_id) == f"-100{stored_id}") or \
                    (f"-100{real_chat_id}" == stored_id) or \
-                   (stored_id in str(real_chat_id)) # 最后的保底
-                   
-        # 匹配逻辑2: 用户名匹配 (忽略大小写)
+                   (stored_id in str(real_chat_id))
         username_match = False
         if chat_username and stored_id.lower() == chat_username.lower():
             username_match = True
-            
-        # 匹配逻辑3: 数据库存的是完整的链接 t.me/xxx
         link_match = False
         if 't.me/' in stored_id:
             db_uname = stored_id.split('/')[-1]
@@ -179,7 +157,7 @@ async def process_video_message(client, message, account_config):
             target_channel = ch
             break
             
-    # 如果有自定义路径
+    download_dir = db_manager.get_setting('DOWNLOAD_DIR', '/app/downloads')
     subdir = ""
     db_channel_id = None
     if target_channel:
@@ -190,41 +168,91 @@ async def process_video_message(client, message, account_config):
     current_download_dir = os.path.join(download_dir, subdir) if subdir else download_dir
     os.makedirs(current_download_dir, exist_ok=True)
     
-    # ... (原有文件名生成逻辑保持不变)
-    
-    file_path = os.path.join(current_download_dir, new_file_name)
-    
-    # 判重处理需要检查 current_download_dir
+    # 判重
     counter = 1
     root_name = sanitized_name
     while os.path.exists(os.path.join(current_download_dir, new_file_name)):
         new_file_name = f"{root_name}_{counter}{file_ext}"
         counter += 1
-        file_path = os.path.join(current_download_dir, new_file_name)
+    
+    return new_file_name, os.path.join(current_download_dir, new_file_name), db_channel_id
+
+async def process_video_message(client, message, account_config, task_id=None):
+    account_id = account_config['id']
+    channel_id = message.chat_id if hasattr(message, 'chat_id') else message.source_channel_id
+    
+    # 尝试从 Telegram 重新获取完整消息对象（兼容恢复任务）
+    if not hasattr(message, 'media') or message.media is None:
+        try:
+            mid = message.id if hasattr(message, 'id') else message.source_message_id
+            cid = message.chat_id if hasattr(message, 'chat_id') else message.source_channel_id
+            real_msg = await client.get_messages(cid, ids=mid)
+            if not real_msg or not real_msg.media:
+                raise Exception("无法从 Telegram 获取消息内容，可能已被删除")
+            message = real_msg
+        except Exception as e:
+            logging.error(f"恢复消息对象失败: {e}")
+            if task_id: db_manager.update_task_status(task_id, 'failed', error_msg=f"消息恢复失败: {e}")
+            return
+
+    new_file_name, file_path, db_channel_id = get_file_name_and_path(message, account_id)
     
     status_message = None
-    task_id = None
 
     try:
-        initial_text = f"**准备下载**\n\n**文件名**: `{new_file_name}`"
+        # 检查是否可以断点续传
+        offset = 0
+        if os.path.exists(file_path):
+            offset = os.path.getsize(file_path)
+            logging.info(f"📂 发现已存在文件，尝试从 {offset / 1024 / 1024:.2f}MB 处断点续传: {new_file_name}")
+
+        initial_text = f"**正在下载**\n\n**文件名**: `{new_file_name}`"
+        if offset > 0:
+            initial_text += f"\n**状态**: `断点续传中...`"
+
         status_message = await client.send_message(channel_id, initial_text)
-        await send_push_notification(f"🚀 [{account_config['name']}] 开始下载: {new_file_name}")
+        await send_push_notification(f"🚀 [{account_config['name']}] {'续传' if offset > 0 else '开始'}下载: {new_file_name}")
         
-        task_id = db_manager.add_task({
-            'account_id': account_id,
-            'channel_id': db_channel_id,
-            'message_id': status_message.id,
-            'file_name': new_file_name,
-            'file_path': file_path, 
-            'file_size': 0,
-            'status': 'downloading',
-            'start_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        })
+        if task_id:
+            db_manager.update_task_status(task_id, 'downloading', start_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+            # 同时更新 message_id 为新的状态消息 ID
+            conn = db_manager._get_connection()
+            try:
+                with conn:
+                    conn.execute("UPDATE tasks SET message_id = ? WHERE id = ?", (status_message.id, task_id))
+            finally: conn.close()
+        else:
+            task_id = db_manager.add_task({
+                'account_id': account_id,
+                'channel_id': db_channel_id,
+                'message_id': status_message.id,
+                'file_name': new_file_name,
+                'file_path': file_path, 
+                'file_size': 0,
+                'status': 'downloading',
+                'start_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'source_message_id': message.id,
+                'source_channel_id': channel_id
+            })
     
-        await client.download_media(
-            message.media, file=file_path,
-            progress_callback=lambda c, t: progress_callback(client, account_id, status_message.id, c, t, new_file_name, channel_id)
-        )
+        # 使用 iter_download 手动控制文件流以实现断点续传，提高版本兼容性
+        downloaded = offset
+        total_size = message.file.size if hasattr(message, 'file') and message.file else 0
+        
+        with open(file_path, 'ab') as f:
+            async for chunk in client.iter_download(
+                message.media,
+                offset=offset,
+                request_size=1024*1024 # 1MB 块大小
+            ):
+                f.write(chunk)
+                downloaded += len(chunk)
+                # 触发进度回调
+                await progress_callback(
+                    client, account_id, status_message.id, 
+                    downloaded, total_size or downloaded, 
+                    new_file_name, channel_id
+                )
         
         file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
         await client.edit_message(channel_id, status_message.id, f"✅ **下载完成**\n\n**文件名**: `{new_file_name}`\n**大小**: `{file_size_mb:.2f} MB`")
@@ -254,11 +282,42 @@ async def queue_worker(client, queue, account_config):
                 logging.debug(f"并发数已满 ({max_concurrent})，等待中...")
                 await asyncio.sleep(5)
 
-            message = await queue.get()
-            await process_video_message(client, message, account_config)
+            item = await queue.get()
+            if isinstance(item, tuple):
+                message, task_id = item
+            else:
+                message, task_id = item, None
+                
+            await process_video_message(client, message, account_config, task_id)
             queue.task_done()
         except Exception as e:
             logging.error(f"Worker Error: {e}")
+
+async def recover_tasks(client, queue, account_id):
+    """从数据库恢复未完成的任务"""
+    unfinished = db_manager.get_unfinished_tasks_by_account(account_id)
+    if not unfinished: return
+    
+    logging.info(f"🔍 发现 {len(unfinished)} 个未完成任务，正在尝试恢复队列...")
+    for t in unfinished:
+        try:
+            # 将字典转为类对象或直接在 worker 里处理
+            # 这里简单起见，我们构造一个虚假消息对象，或者让 process_video_message 自己去 fetch
+            # 我们给 queue 传递一个特殊的标记对象
+            class RecoveredTask:
+                def __init__(self, data):
+                    self.id = data['source_message_id']
+                    self.chat_id = data['source_channel_id']
+                    self.source_message_id = data['source_message_id']
+                    self.source_channel_id = data['source_channel_id']
+                    self.db_task_id = data['id']
+                    # 模拟 Message 属性
+                    self.text = ""
+                    self.video = None 
+            
+            await queue.put((RecoveredTask(t), t['id']))
+        except Exception as e:
+            logging.error(f"恢复任务 {t['id']} 失败: {e}")
 
 async def run_account_bot(account_config, stop_event):
     """运行单个账号的 Bot 实例，支持监听多个频道"""
@@ -305,7 +364,24 @@ async def run_account_bot(account_config, stop_event):
         @client.on(events.NewMessage(chats=channel_list))
         async def handler(event):
             if event.message.video and not event.message.is_reply:
-                await queue.put(event.message)
+                # 1. 快速回复并创建等待任务
+                try:
+                    fn, fp, cid = get_file_name_and_path(event.message, account_id)
+                    task_id = db_manager.add_task({
+                        'account_id': account_id,
+                        'channel_id': cid,
+                        'file_name': fn,
+                        'file_path': fp,
+                        'status': 'waiting',
+                        'start_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'source_message_id': event.message.id,
+                        'source_channel_id': event.message.chat_id
+                    })
+                    await event.reply("✅ **已加入队列**，等待排队下载...")
+                    await queue.put((event.message, task_id))
+                except Exception as e:
+                    logging.error(f"加入队列失败: {e}")
+                    await queue.put(event.message)
 
         # 这里使用 wait_for 增加启动超时，防止无限卡死
         logging.info(f"Bot [{account_name}] 开始执行 client.start()...")
@@ -328,6 +404,8 @@ async def run_account_bot(account_config, stop_event):
         
         bot_active_status[account_id] = "running"
         asyncio.create_task(queue_worker(client, queue, account_config))
+        # 启动时恢复历史任务
+        await recover_tasks(client, queue, account_id)
         
         # 记录已连接
         # 记录已连接
@@ -337,9 +415,18 @@ async def run_account_bot(account_config, stop_event):
         # 发送频道上线通知 (根据设置)
         if db_manager.get_setting('SEND_CHANNEL_LOGIN_MSG', False):
             logging.info(f"Bot [{account_name}] 正在向频道发送上线通知...")
+            
+            # 获取当前版本号
+            version_str = "未知"
+            try:
+                from tg_download_web import VERSION
+                version_str = VERSION
+            except:
+                pass
+
             for cid in channel_list:
                 try:
-                    await client.send_message(cid, f"🤖 **机器人已上线**\n\n**账号**: `{account_name}`\n**时间**: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`")
+                    await client.send_message(cid, f"🤖 **机器人已上线**\n\n**账号**: `{account_name}`\n**版本**: `{version_str}`\n**时间**: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`")
                 except Exception as e:
                     logging.error(f"向频道 [{cid}] 发送上线消息失败: {e}")
         

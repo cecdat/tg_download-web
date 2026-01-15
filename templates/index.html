@@ -126,6 +126,17 @@
             background-color: #f8fafc;
             font-weight: 600;
         }
+
+        .text-danger {
+            color: #ef4444 !important;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e293b;
+            transition: color 0.3s;
+        }
     </style>
 </head>
 
@@ -152,46 +163,58 @@
                         <li lay-id="notifications"><i class="layui-icon layui-icon-notice"></i> 通知服务</li>
                         <li lay-id="tasks"><i class="layui-icon layui-icon-log"></i> 下载历史</li>
                         <li lay-id="settings"><i class="layui-icon layui-icon-set-fill"></i> 通用设置</li>
+                        <li lay-id="docs-link" onclick="window.open('/docs', '_blank')"><i
+                                class="layui-icon layui-icon-read"></i> API 文档</li>
                     </ul>
                     <div class="layui-tab-content" style="padding: 20px 0;">
                         <!-- Dashboard -->
                         <div class="layui-tab-item layui-show">
                             <div class="layui-row layui-col-space15">
-                                <div class="layui-col-md4">
+                                <div class="layui-col-md3">
                                     <div class="layui-card" style="border-top: 4px solid #3b82f6;">
                                         <div class="layui-card-body status-card-body">
                                             <i class="layui-icon layui-icon-disk stat-icon"></i>
                                             <div style="color: #64748b; margin-bottom: 8px; font-size: 14px;">磁盘空间使用
                                             </div>
-                                            <div style="font-size: 24px; font-weight: bold; color: #1e293b;"
-                                                id="diskUsage">-- %</div>
+                                            <div class="stat-value" id="diskUsage">-- %</div>
                                             <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;"
                                                 id="diskDetail">-- / -- GB</div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="layui-col-md4">
+                                <div class="layui-col-md3">
                                     <div class="layui-card" style="border-top: 4px solid #10b981;">
                                         <div class="layui-card-body status-card-body">
                                             <i class="layui-icon layui-icon-engine stat-icon"></i>
                                             <div style="color: #64748b; margin-bottom: 8px; font-size: 14px;">系统内存使用
                                             </div>
-                                            <div style="font-size: 24px; font-weight: bold; color: #1e293b;"
-                                                id="memUsage">-- %</div>
+                                            <div class="stat-value" id="memUsage">-- %</div>
                                             <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;"
                                                 id="memDetail">-- / -- GB</div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="layui-col-md4">
+                                <div class="layui-col-md3">
+                                    <div class="layui-card" style="border-top: 4px solid #f59e0b;">
+                                        <div class="layui-card-body status-card-body">
+                                            <i class="layui-icon layui-icon-util stat-icon"></i>
+                                            <div style="color: #64748b; margin-bottom: 8px; font-size: 14px;">系统平均负载
+                                            </div>
+                                            <div class="stat-value" id="sysLoad">--</div>
+                                            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">最近 1 分钟</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="layui-col-md3">
                                     <div class="layui-card" style="border-top: 4px solid #8b5cf6;">
                                         <div class="layui-card-body status-card-body">
-                                            <i class="layui-icon layui-icon-download-circle stat-icon"></i>
-                                            <div style="color: #64748b; margin-bottom: 8px; font-size: 14px;">正在下载任务
+                                            <i class="layui-icon layui-icon-log stat-icon"></i>
+                                            <div style="color: #64748b; margin-bottom: 8px; font-size: 14px;">服务器运行时间
                                             </div>
-                                            <div style="font-size: 24px; font-weight: bold; color: #1e293b;"
-                                                id="activeCount">0</div>
-                                            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">当前活跃会话</div>
+                                            <div class="stat-value" id="uptime"
+                                                style="font-size: 16px; height: 36px; display: flex; align-items: center;">
+                                                --</div>
+                                            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">连续运行状态</div>
                                         </div>
                                     </div>
                                 </div>
@@ -201,7 +224,8 @@
                                 <div class="layui-card-header"
                                     style="border-bottom: 1px solid #f1f5f9; font-weight: 600;">
                                     <i class="layui-icon layui-icon-video"
-                                        style="margin-right: 8px; color: #4f46e5;"></i>活跃下载
+                                        style="margin-right: 8px; color: #4f46e5;"></i>
+                                    活跃下载 (<span id="activeCount">0</span>)
                                 </div>
                                 <div class="layui-card-body" id="activeList" style="padding: 20px;">
                                     <div style="text-align: center; color: #94a3b8; padding: 60px 0;">
@@ -521,26 +545,53 @@
         layui.use(['element', 'form', 'layer'], function () {
             const element = layui.element, form = layui.form, layer = layui.layer, $ = layui.$;
 
+            function formatUptime(seconds) {
+                if (!seconds) return '--';
+                const d = Math.floor(seconds / (3600 * 24));
+                const h = Math.floor((seconds % (3600 * 24)) / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                const s = Math.floor(seconds % 60);
+
+                let parts = [];
+                if (d > 0) parts.push(d + '天');
+                if (h > 0) parts.push(h + '时');
+                if (m > 0) parts.push(m + '分');
+                parts.push(s + '秒');
+                return parts.join(' ');
+            }
+
             function updateDashboard() {
                 $.get('/api/status', function (res) {
                     if (res.code === 200) {
-                        $('#diskUsage').text(res.data.disk.percent + ' %');
-                        $('#diskDetail').text(res.data.disk.used + ' / ' + res.data.disk.total + ' GB');
-                        $('#memUsage').text(res.data.memory.percent + ' %');
-                        $('#memDetail').text(res.data.memory.used + ' / ' + res.data.memory.total + ' GB');
+                        const disk = res.data.disk;
+                        const memory = res.data.memory;
+                        const load = res.data.load || [0, 0, 0];
+
+                        // 更新磁盘
+                        $('#diskUsage').text(disk.percent + ' %');
+                        $('#diskDetail').text(disk.used + ' / ' + disk.total + ' GB');
+                        if (disk.percent > 90) $('#diskUsage').addClass('text-danger');
+                        else $('#diskUsage').removeClass('text-danger');
+
+                        // 更新内存
+                        $('#memUsage').text(memory.percent + ' %');
+                        $('#memDetail').text(memory.used + ' / ' + memory.total + ' GB');
+                        if (memory.percent > 90) $('#memUsage').addClass('text-danger');
+                        else $('#memUsage').removeClass('text-danger');
+
+                        // 更新负载和时长
+                        $('#sysLoad').text(parseFloat(load[0]).toFixed(2));
+                        $('#uptime').text(formatUptime(res.data.uptime));
+
+                        // 更新活跃数
                         $('#activeCount').text(res.data.active_count);
 
                         // 更新频道运行状态标识
                         if (res.data.bot_status) {
                             $('.channel-status-tag').each(function () {
                                 let row = $(this).closest('tr');
-                                // 我们在 tr 上存了 account_id (需要修改 loadChannels 添加)
-                                // 或者直接解析关联账号列？不靠谱。
-                                // 最好的方式是在 loadChannels 生成 HTML 时把 account_id 放在 data 属性里
                                 let accountId = $(this).data('account-id');
                                 let isEnabled = row.find('input[name="switch"]').prop('checked');
-
-                                // 现在 bot_status 的 key 是 account_id
                                 let status = res.data.bot_status[accountId];
 
                                 if (status === 'running') {
@@ -558,36 +609,48 @@
                         let html = '';
                         if (res.data.active_downloads.length > 0) {
                             res.data.active_downloads.forEach(task => {
-                                html += `<div class="progress-item">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                                <div style="font-weight: 600; color: #1e293b; font-size: 14px;">
-                                    <i class="layui-icon layui-icon-list" style="color: #4f46e5; margin-right: 8px;"></i>${task.name}
-                                </div>
-                                <div class="speed-text"><i class="layui-icon layui-icon-top" style="font-size: 12px;"></i> ${task.speed}</div>
-                            </div>
-                            <div class="layui-progress layui-progress-big" lay-showpercent="true">
-                                <div class="layui-progress-bar" style="width: ${task.percentage}%">
-                                    <span class="layui-progress-text">${task.percentage}%</span>
-                                </div>
-                            </div>
-                            <div style="font-size: 12px; color: #64748b; margin-top: 10px; display: flex; justify-content: space-between;">
-                                <span><i class="layui-icon layui-icon-transfer" style="font-size: 12px; margin-right: 4px;"></i>${task.downloaded} MB / ${task.total} MB</span>
-                                <span title="来源频道"><i class="layui-icon layui-icon-group" style="font-size: 12px; margin-right: 4px;"></i>${task.channel_name}</span>
-                            </div>
-                        </div>`;
+                                if (task.status === 'waiting') {
+                                    html += `<div class="progress-item" style="border-left: 4px solid #f59e0b; opacity: 0.8;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <div style="font-weight: 600; color: #1e293b; font-size: 14px;">
+                                                <i class="layui-icon layui-icon-time" style="color: #f59e0b; margin-right: 8px;"></i>${task.name}
+                                            </div>
+                                            <div class="speed-text" style="color: #f59e0b;">已加入队列，排队中...</div>
+                                        </div>
+                                        <div style="font-size: 12px; color: #64748b; margin-top: 10px; display: flex; justify-content: space-between;">
+                                            <span>等待资源分配</span>
+                                            <span title="来源频道"><i class="layui-icon layui-icon-group" style="font-size: 12px; margin-right: 4px;"></i>${task.channel_name || '-'}</span>
+                                        </div>
+                                    </div>`;
+                                } else {
+                                    html += `<div class="progress-item">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                            <div style="font-weight: 600; color: #1e293b; font-size: 14px;">
+                                                <i class="layui-icon layui-icon-list" style="color: #4f46e5; margin-right: 8px;"></i>${task.name}
+                                            </div>
+                                            <div class="speed-text"><i class="layui-icon layui-icon-top" style="font-size: 12px;"></i> ${task.speed}</div>
+                                        </div>
+                                        <div class="layui-progress layui-progress-big" lay-showpercent="true">
+                                            <div class="layui-progress-bar" style="width: ${task.percentage}%">
+                                                <span class="layui-progress-text">${task.percentage}%</span>
+                                            </div>
+                                        </div>
+                                        <div style="font-size: 12px; color: #64748b; margin-top: 10px; display: flex; justify-content: space-between;">
+                                            <span><i class="layui-icon layui-icon-transfer" style="font-size: 12px; margin-right: 4px;"></i>${task.downloaded} MB / ${task.total} MB</span>
+                                            <span title="来源频道"><i class="layui-icon layui-icon-group" style="font-size: 12px; margin-right: 4px;"></i>${task.channel_name || '-'}</span>
+                                        </div>
+                                    </div>`;
+                                }
                             });
                         } else {
-                            html = '<div style="text-align: center; color: #999; padding: 40px;">暂无活跃任务</div>';
+                            html = '<div style="text-align: center; color: #94a3b8; padding: 60px 0;">' +
+                                '<i class="layui-icon layui-icon-face-smile" style="font-size: 48px; display: block; margin-bottom: 10px; opacity: 0.5;"></i>暂无活跃任务</div>';
                         }
                         $('#activeList').html(html);
 
-                        // 动态调整刷新频率：有任务时3秒刷新，无任务时10秒刷新 (心跳检测)
-                        let nextInterval = 10000;
-                        if (res.data.active_count > 0) {
-                            nextInterval = 3000;
-                        }
+                        // 动态调整刷新频率：有任务时3秒刷新，无任务时10秒刷新
+                        let nextInterval = (res.data.active_count > 0) ? 3000 : 10000;
 
-                        // 只有当前还在 dashboard 标签页时才继续
                         if ($('.layui-tab-title .layui-this').attr('lay-id') === 'dashboard') {
                             if (window.dashboardTimer) clearTimeout(window.dashboardTimer);
                             window.dashboardTimer = setTimeout(updateDashboard, nextInterval);
@@ -677,6 +740,7 @@
                         let html = '';
                         res.data.forEach(t => {
                             let statusMap = {
+                                'waiting': '<span class="layui-badge layui-bg-orange">排队中</span>',
                                 'downloading': '<span class="layui-badge layui-bg-blue">下载中</span>',
                                 'completed': '<span class="layui-badge layui-bg-green">已完成</span>',
                                 'failed': '<span class="layui-badge layui-bg-red">失败</span>',

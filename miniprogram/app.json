@@ -1,0 +1,46 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/index/index",
+    "pages/accounts/accounts",
+    "pages/channels/channels",
+    "pages/tasks/tasks",
+    "pages/settings/settings"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#5271FF",
+    "navigationBarTitleText": "TG Downloader",
+    "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#94A3B8",
+    "selectedColor": "#5271FF",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/accounts/accounts",
+        "text": "账号"
+      },
+      {
+        "pagePath": "pages/channels/channels",
+        "text": "频道"
+      },
+      {
+        "pagePath": "pages/tasks/tasks",
+        "text": "任务"
+      },
+      {
+        "pagePath": "pages/settings/settings",
+        "text": "设置"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json"
+}

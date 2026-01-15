@@ -1,0 +1,36 @@
+/* pages/settings/settings.wxss */
+.header-section {
+  padding: 40rpx 0 20rpx 0;
+}
+
+.error-msg {
+  font-size: 24rpx;
+  background: #FFF1F2;
+  color: #E11D48;
+  padding: 16rpx 24rpx;
+  border-radius: 12rpx;
+  margin-top: 20rpx;
+}
+
+.logout-section {
+  padding: 0 40rpx;
+}
+
+.btn-danger-outline {
+  background: transparent;
+  color: #E11D48;
+  border: 4rpx solid #FECDD3;
+  border-radius: 100rpx;
+  padding: 24rpx;
+  text-align: center;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.btn-danger-outline:active {
+  background: #FFF1F2;
+  border-color: #E11D48;
+}
+
+.font-bold { font-weight: 700; }
+.py-40 { padding: 40rpx 0; }

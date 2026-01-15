@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>TG-Downloader API 文档</title>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+    <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/favicon-32x32.png"
+        sizes="32x32" />
+    <style>
+        html {
+            box-sizing: border-box;
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+        }
+
+        *,
+        *:before,
+        *:after {
+            box-sizing: inherit;
+        }
+
+        body {
+            margin: 0;
+            background: #fafafa;
+        }
+
+        .swagger-ui .topbar {
+            display: none;
+        }
+
+        /* Premium Adjustments */
+        .swagger-ui .info .title {
+            color: #1e293b;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .swagger-ui .scheme-container {
+            background: #fff;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js" charset="UTF-8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js"
+        charset="UTF-8"></script>
+    <script>
+        window.onload = function () {
+            const ui = SwaggerUIBundle({
+                url: "/api/swagger.json",
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "BaseLayout",
+                persistAuthorization: true,
+                displayRequestDuration: true,
+                defaultModelsExpandDepth: 1,
+                defaultModelExpandDepth: 1,
+            });
+            window.ui = ui;
+        };
+    </script>
+</body>
+
+</html>

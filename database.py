@@ -98,6 +98,10 @@ class DatabaseManager:
                             conn.execute("ALTER TABLE tasks ADD COLUMN file_path TEXT")
                         if 'channel_id' not in columns:
                              conn.execute("ALTER TABLE tasks ADD COLUMN channel_id INTEGER")
+                        if 'source_message_id' not in columns:
+                             conn.execute("ALTER TABLE tasks ADD COLUMN source_message_id INTEGER")
+                        if 'source_channel_id' not in columns:
+                             conn.execute("ALTER TABLE tasks ADD COLUMN source_channel_id INTEGER")
                     except Exception as e:
                         print(f"Migration error (tasks columns): {e}")
 
@@ -404,8 +408,8 @@ class DatabaseManager:
         try:
             with conn:
                 cursor = conn.execute('''
-                    INSERT INTO tasks (account_id, message_id, file_name, file_size, status, start_time, file_path, channel_id)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO tasks (account_id, message_id, file_name, file_size, status, start_time, file_path, channel_id, source_message_id, source_channel_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     task_data.get('account_id'),
                     task_data.get('message_id'),
@@ -414,13 +418,28 @@ class DatabaseManager:
                     task_data.get('status', 'downloading'),
                     task_data.get('start_time'),
                     task_data.get('file_path'),
-                    task_data.get('channel_id')
+                    task_data.get('channel_id'),
+                    task_data.get('source_message_id'),
+                    task_data.get('source_channel_id')
                 ))
                 return cursor.lastrowid
         finally:
             conn.close()
 
-    def update_task_status(self, task_id: int, status: str, end_time: str = None, error_msg: str = None):
+    def get_unfinished_tasks_by_account(self, account_id: int) -> List[Dict]:
+        """获取某个账号下所有未完成（正在下载或等待中）的任务"""
+        conn = self._get_connection()
+        try:
+            rows = conn.execute('''
+                SELECT * FROM tasks 
+                WHERE account_id = ? AND status IN ('downloading', 'waiting')
+                ORDER BY id ASC
+            ''', (account_id,)).fetchall()
+            return [dict(row) for row in rows]
+        finally:
+            conn.close()
+
+    def update_task_status(self, task_id: int, status: str, end_time: str = None, error_msg: str = None, start_time: str = None):
         conn = self._get_connection()
         try:
             with conn:
@@ -428,6 +447,11 @@ class DatabaseManager:
                     conn.execute(
                         "UPDATE tasks SET status = ?, end_time = ?, error_msg = ? WHERE id = ?",
                         (status, end_time, error_msg, task_id)
+                    )
+                elif start_time:
+                    conn.execute(
+                        "UPDATE tasks SET status = ?, start_time = ? WHERE id = ?",
+                        (status, start_time, task_id)
                     )
                 else:
                     conn.execute(
@@ -463,12 +487,13 @@ class DatabaseManager:
         conn = self._get_connection()
         try:
             with conn:
-                # 只清除已完成、失败或停止的任务，保留下载中的
-                conn.execute("DELETE FROM tasks WHERE status != 'downloading'")
+                # 只清除已完成、失败或停止的任务，保留下载中和等待中的
+                conn.execute("DELETE FROM tasks WHERE status NOT IN ('downloading', 'waiting')")
         finally:
             conn.close()
 
     def get_active_task_count(self) -> int:
+        """获取当前正在下载的任务数（不含等待中）用于并发控制"""
         conn = self._get_connection()
         try:
             return conn.execute("SELECT COUNT(*) FROM tasks WHERE status = 'downloading'").fetchone()[0]
@@ -476,6 +501,7 @@ class DatabaseManager:
             conn.close()
             
     def get_active_tasks(self) -> List[Dict]:
+        """获取所有活跃任务（包含正在下载和排队等待的）"""
         conn = self._get_connection()
         try:
             rows = conn.execute('''
@@ -483,7 +509,8 @@ class DatabaseManager:
                 FROM tasks t
                 LEFT JOIN accounts a ON t.account_id = a.id
                 LEFT JOIN channels c ON t.channel_id = c.id
-                WHERE t.status = 'downloading'
+                WHERE t.status IN ('downloading', 'waiting')
+                ORDER BY CASE WHEN t.status = 'downloading' THEN 0 ELSE 1 END, t.id ASC
             ''').fetchall()
             return [dict(row) for row in rows]
         finally:

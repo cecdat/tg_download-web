@@ -1,0 +1,106 @@
+/* pages/login/login.wxss */
+.container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: #F8FAFC;
+}
+
+.background-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.login-container {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 40rpx;
+  padding-bottom: 200rpx; /* 增加底部间距使表单上移 */
+  box-sizing: border-box;
+}
+
+.login-form {
+  width: 100%;
+  max-width: 600rpx;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(24rpx);
+  -webkit-backdrop-filter: blur(24rpx);
+  border-radius: 40rpx;
+  padding: 60rpx;
+  box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.08);
+  border: 1rpx solid rgba(255, 255, 255, 0.4);
+  animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: -100rpx; /* 再次微调上移 */
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(80rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.title {
+  font-size: 48rpx;
+  font-weight: 800;
+  color: #1E293B;
+  letter-spacing: -1px;
+}
+
+.subtitle {
+  font-size: 26rpx;
+  color: #64748B;
+  margin-bottom: 40rpx;
+}
+
+.checkbox {
+  width: 36rpx;
+  height: 36rpx;
+  background: #F1F5F9;
+  border-radius: 8rpx;
+  margin-right: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 24rpx;
+  border: 2rpx solid #E2E8F0;
+  transition: all 0.2s ease;
+}
+
+.checkbox.checked {
+  background: #5271FF;
+  border-color: #5271FF;
+}
+
+.remember-text {
+  font-size: 26rpx;
+  color: #64748B;
+}
+
+.error-text {
+  font-size: 24rpx;
+  background: #FFF1F2;
+  color: #E11D48;
+  padding: 16rpx 24rpx;
+  border-radius: 12rpx;
+  border: 1rpx solid #FECDD3;
+}
+
+.footer-text {
+  font-size: 24rpx;
+  color: #94A3B8;
+}
+
+/* 微信小程序 Input 焦点样式修正 */
+.input-field:focus {
+  background: #FFFFFF !important;
+  border-color: #5271FF !important;
+}

@@ -1,0 +1,55 @@
+<view class="container">
+  <canvas canvas-id="backgroundCanvas" class="background-canvas"></canvas>
+  <view class="login-container">
+    <view class="login-form card shadow-lg">
+      <view class="title text-center">📥 TG Downloader</view>
+      <view class="subtitle text-center">请登录管理后台</view>
+      
+      <view class="form-group mt-40">
+        <view class="input-label">用户名</view>
+        <view class="input-wrapper input-with-icon">
+          <view class="input-icon">👤</view>
+          <input 
+            class="input-field" 
+            placeholder="请输入管理员账号"
+            placeholder-class="input-placeholder"
+            bindinput="onUsernameInput"
+            value="{{username}}"
+          />
+        </view>
+      </view>
+      
+      <view class="form-group mt-20">
+        <view class="input-label">密码</view>
+        <view class="input-wrapper input-with-icon">
+          <view class="input-icon">🔒</view>
+          <input 
+            class="input-field" 
+            password 
+            placeholder="请输入管理员密码"
+            placeholder-class="input-placeholder"
+            bindinput="onPasswordInput"
+            value="{{password}}"
+          />
+        </view>
+      </view>
+      
+      <view class="remember-me flex-between mt-20">
+        <view class="flex-row" bindtap="toggleRemember">
+          <view class="checkbox {{rememberMe ? 'checked' : ''}}">
+            <text wx:if="{{rememberMe}}">✓</text>
+          </view>
+          <text class="remember-text">记住状态</text>
+        </view>
+      </view>
+      
+      <view class="error-text text-danger text-center mt-20" wx:if="{{error}}" bindtap="hideError">{{error}}</view>
+      
+      <view class="btn-primary mt-40" bindtap="login">进入控制台</view>
+      
+      <view class="footer-text text-center mt-20">
+        <text>© 2026 TG Downloader</text>
+      </view>
+    </view>
+  </view>
+</view>

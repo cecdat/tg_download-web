@@ -22,4 +22,4 @@ RUN mkdir -p data logs downloads
 EXPOSE 5001
 
 # 启动 Web 服务（它会负责启动机器人）
-CMD ["python", "tg-download-web.py"]
+CMD ["python", "tg_download_web.py"]
