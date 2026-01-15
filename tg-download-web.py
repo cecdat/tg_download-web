@@ -18,7 +18,8 @@ from database import db_manager
 # 或者直接在这里实现集成逻辑
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
+app.secret_key = os.environ.get('SECRET_KEY', 'tg-download-secret-key-fixed')
+VERSION = "1.0.1-api-fix" # 增加版本标识用于验证代码是否更新
 
 # 配置日志
 LOG_DIR = 'logs'
@@ -52,18 +53,47 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
+            # 强化检测：只要是 /api/ 路径，或者显式要求 JSON，都返回 401
+            is_api = (
+                request.path.startswith('/api/') or 
+                request.is_json or 
+                'application/json' in request.headers.get('Accept', '')
+            )
+            if is_api:
+                return jsonify({'code': 401, 'message': '请先登录', 'version': VERSION}), 200
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
+@app.route('/api/ping')
+def ping():
+    return jsonify({'code': 200, 'version': VERSION, 'status': 'running'})
+
+@app.route('/api/login', methods=['POST'])
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        data = request.form
-        user = db_manager.get_user(data.get('username'))
-        if user and verify_password(data.get('password'), user['password']):
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form
+            
+        username = data.get('username')
+        password = data.get('password')
+        
+        user = db_manager.get_user(username)
+        if user and verify_password(password, user['password']):
             session['user_id'] = user['username']
+            session.permanent = True
+            
+            # 只要是以 /api/ 开头或者显式要求 JSON 的，都返回 JSON
+            is_api = request.path.startswith('/api/') or request.is_json or 'application/json' in request.headers.get('Accept', '')
+            if is_api:
+                return jsonify({'code': 200, 'message': '登录成功', 'version': VERSION})
             return redirect(url_for('index'))
+            
+        if request.is_json or request.path.startswith('/api/') or 'application/json' in request.headers.get('Accept', ''):
+            return jsonify({'code': 400, 'message': '用户名或密码错误'})
         return render_template('login.html', error='用户名或密码错误')
     return render_template('login.html')
 
