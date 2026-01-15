@@ -1,4 +1,5 @@
-from flask import Blueprint, jsonify, request, render_template, shutil
+from flask import Blueprint, jsonify, request, render_template
+import shutil
 import os
 import time
 import datetime
